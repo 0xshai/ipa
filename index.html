@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>国际音标学习</title>
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#070a12;
+  --line:rgba(116,185,255,.22);
+  --line-soft:rgba(255,255,255,.1);
+  --text:#eef6ff;
+  --muted:#8fa5bd;
+  --cyan:#39d5ff;
+  --blue:#628bff;
+  --green:#35f0ac;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  min-height:100vh;
+  padding:16px 12px 30px;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;
+  background:
+    radial-gradient(circle at 15% 10%,rgba(57,213,255,.18),transparent 28%),
+    radial-gradient(circle at 85% 0,rgba(98,139,255,.2),transparent 30%),
+    linear-gradient(135deg,#05070d 0%,#0c1220 48%,#071219 100%);
+  color:var(--text);
+}
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  background-image:
+    linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
+  background-size:34px 34px;
+  mask-image:linear-gradient(to bottom,rgba(0,0,0,.82),transparent 78%);
+}
+.app{position:relative;max-width:1180px;margin:0 auto}
+.topbar{
+  position:sticky;
+  top:0;
+  z-index:20;
+  width:100%;
+  margin:0 auto 14px;
+  padding:12px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  background:rgba(7,10,18,.76);
+  backdrop-filter:blur(18px);
+  box-shadow:0 14px 40px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08);
+}
+.topbar-inner{display:grid;grid-template-columns:1fr minmax(210px,320px);gap:14px;align-items:center}
+h1{font-size:24px;font-weight:780;letter-spacing:0}
+.subtitle{font-size:13px;color:var(--muted);margin-top:3px}
+.accent-toggle{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:6px;
+  padding:5px;
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:10px;
+  background:rgba(255,255,255,.06);
+}
+.accent-btn{
+  min-height:42px;
+  border:0;
+  border-radius:8px;
+  color:#9eb1c8;
+  background:transparent;
+  font-size:15px;
+  font-weight:800;
+  cursor:pointer;
+  transition:background .16s,color .16s,box-shadow .16s,transform .16s;
+}
+.accent-btn.active{
+  color:#031019;
+  background:linear-gradient(135deg,var(--cyan),var(--green));
+  box-shadow:0 0 22px rgba(57,213,255,.38);
+}
+.accent-btn:active{transform:scale(.98)}
+#chart{display:grid;gap:14px}
+.section-label{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px;padding:0 2px}
+.section-label h2{font-size:15px;font-weight:780;color:#d9edff}
+.section-label span{font-size:12px;color:var(--muted)}
+.ipa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(94px,1fr));gap:8px}
+.ipa-card{
+  position:relative;
+  min-height:112px;
+  display:grid;
+  grid-template-rows:1fr auto auto auto;
+  align-items:center;
+  overflow:hidden;
+  padding:9px 7px;
+  border:1px solid var(--line-soft);
+  border-radius:10px;
+  background:linear-gradient(180deg,rgba(17,27,48,.92),rgba(10,16,30,.92));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
+  text-align:center;
+  cursor:pointer;
+  user-select:none;
+  transition:transform .14s,border-color .14s,box-shadow .14s,background .14s;
+}
+.ipa-card::before{
+  content:"";
+  position:absolute;
+  inset:-70% -30%;
+  opacity:0;
+  background:radial-gradient(circle,rgba(57,213,255,.34),transparent 34%);
+  transform:translate(var(--x,0),var(--y,0)) scale(.6);
+  transition:opacity .22s,transform .22s;
+}
+.ipa-card:hover{
+  transform:translateY(-2px);
+  border-color:rgba(57,213,255,.44);
+  box-shadow:0 10px 28px rgba(0,0,0,.28),0 0 22px rgba(57,213,255,.12);
+}
+.ipa-card.playing{
+  border-color:var(--cyan);
+  box-shadow:0 0 0 1px rgba(57,213,255,.28),0 0 28px rgba(57,213,255,.28);
+}
+.ipa-card.playing::before{opacity:1;transform:translate(var(--x,0),var(--y,0)) scale(1)}
+.ipa-symbol,.ipa-word{position:relative;z-index:1}
+.ipa-symbol{
+  align-self:end;
+  font-family:"Noto Sans","Segoe UI",sans-serif;
+  font-size:30px;
+  line-height:1;
+  font-weight:820;
+  color:#f7fbff;
+  text-shadow:0 0 18px rgba(57,213,255,.34);
+}
+.divider{
+  position:relative;
+  z-index:1;
+  width:68%;
+  height:1px;
+  margin:8px auto;
+  background:linear-gradient(90deg,transparent,rgba(57,213,255,.42),rgba(53,240,172,.25),transparent);
+}
+.ipa-word{
+  align-self:start;
+  font-size:19px;
+  line-height:1.05;
+  font-weight:760;
+  color:#b7c9dd;
+  overflow-wrap:anywhere;
+}
+.word-ipa{
+  position:relative;
+  z-index:1;
+  margin-top:4px;
+  font-family:"Noto Sans","Segoe UI",sans-serif;
+  font-size:12px;
+  line-height:1.1;
+  color:rgba(183,201,221,.68);
+  white-space:nowrap;
+}
+@media(max-width:720px){
+  body{padding:10px 8px 24px}
+  .topbar{border-radius:10px;padding:10px;margin-bottom:10px}
+  .topbar-inner{grid-template-columns:1fr;gap:9px}
+  h1{font-size:22px}
+  .subtitle{font-size:12px}
+  .accent-btn{min-height:40px}
+  .ipa-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+  .ipa-card{min-height:104px;border-radius:9px;padding:8px 5px}
+  .ipa-symbol{font-size:25px}
+  .divider{margin:7px auto;width:72%}
+  .ipa-word{font-size:16px}
+  .word-ipa{font-size:10px}
+}
+@media(max-width:420px){
+  .ipa-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+</style>
+</head>
+<body>
+<main class="app">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <h1>国际音标学习</h1>
+        <p class="subtitle">点音标播音标发音，点单词播当前口音的单词发音。</p>
+      </div>
+      <div class="accent-toggle" role="group" aria-label="选择单词发音口音">
+        <button class="accent-btn active" type="button" data-accent="uk" aria-pressed="true">GB</button>
+        <button class="accent-btn" type="button" data-accent="us" aria-pressed="false">US</button>
+      </div>
+    </div>
+  </header>
+  <div id="chart"></div>
+</main>
+<script>
+const PHONEME_DIR = "sounds/phonemes/";
+const WORD_DIR = "sounds/words/";
+
+const categories = [
+  {
+    title:"元音",
+    hint:"Vowels · 20",
+    items:[
+      {s:"/ɪ/", w:"sit", p:"/sɪt/", f:"sit", ipa:"sound_short_i.mp3"},
+      {s:"/e/", w:"bed", p:"/bed/", f:"bed", ipa:"sound_e.mp3"},
+      {s:"/æ/", w:"cat", p:"/kæt/", f:"cat", ipa:"sound_æ.mp3"},
+      {s:"/ɒ/", w:"hot", p:"/hɒt/", f:"hot", ipa:"sound_ɒ.mp3"},
+      {s:"/ʊ/", w:"book", p:"/bʊk/", f:"book", ipa:"sound_u.mp3"},
+      {s:"/ʌ/", w:"cup", p:"/kʌp/", f:"cup", ipa:"sound_ʌ.mp3"},
+      {s:"/ə/", w:"about", p:"/əˈbaʊt/", f:"about", ipa:"sound_ə.mp3"},
+      {s:"/iː/", w:"see", p:"/siː/", f:"see", ipa:"sound_i.mp3"},
+      {s:"/ɑː/", w:"car", p:"/kɑː/", f:"car", ipa:"sound_long_ɑ.mp3"},
+      {s:"/ɔː/", w:"law", p:"/lɔː/", f:"law", ipa:"sound_long_ɔ.mp3"},
+      {s:"/uː/", w:"food", p:"/fuːd/", f:"food", ipa:"sound_long_u.mp3"},
+      {s:"/ɜː/", w:"bird", p:"/bɜːd/", f:"bird", ipa:"sound_long_ə.mp3"},
+      {s:"/eɪ/", w:"day", p:"/deɪ/", f:"day", ipa:"sound_eɪ.mp3"},
+      {s:"/aɪ/", w:"my", p:"/maɪ/", f:"my", ipa:"sound_aɪ.mp3"},
+      {s:"/ɔɪ/", w:"boy", p:"/bɔɪ/", f:"boy", ipa:"sound_ɔɪ.mp3"},
+      {s:"/aʊ/", w:"now", p:"/naʊ/", f:"now", ipa:"sound_aʊ.mp3"},
+      {s:"/əʊ/", w:"go", p:"/ɡəʊ/", f:"go", ipa:"sound_əʊ.mp3"},
+      {s:"/ɪə/", w:"ear", p:"/ɪə/", f:"ear", ipa:"sound_ɪə.mp3"},
+      {s:"/eə/", w:"air", p:"/eə/", f:"air", ipa:"sound_long_e.mp3"},
+      {s:"/ʊə/", w:"pure", p:"/pjʊə/", f:"pure", ipa:"sound_ʊə.mp3"},
+    ],
+  },
+  {
+    title:"辅音",
+    hint:"Consonants · 24",
+    items:[
+      {s:"/p/", w:"pen", p:"/pen/", f:"pen", ipa:"sound_p.mp3"},
+      {s:"/b/", w:"bad", p:"/bæd/", f:"bad", ipa:"sound_b.mp3"},
+      {s:"/t/", w:"tea", p:"/tiː/", f:"tea", ipa:"sound_t.mp3"},
+      {s:"/d/", w:"did", p:"/dɪd/", f:"did", ipa:"sound_d.mp3"},
+      {s:"/k/", w:"cat", p:"/kæt/", f:"cat", ipa:"sound_k.mp3"},
+      {s:"/g/", w:"got", p:"/ɡɒt/", f:"got", ipa:"sound_g.mp3"},
+      {s:"/f/", w:"fall", p:"/fɔːl/", f:"fall", ipa:"sound_f.mp3"},
+      {s:"/v/", w:"voice", p:"/vɔɪs/", f:"voice", ipa:"sound_v.mp3"},
+      {s:"/θ/", w:"think", p:"/θɪŋk/", f:"think", ipa:"sound_θ.mp3"},
+      {s:"/ð/", w:"this", p:"/ðɪs/", f:"this", ipa:"sound_ð.mp3"},
+      {s:"/s/", w:"see", p:"/siː/", f:"see", ipa:"sound_S.mp3"},
+      {s:"/z/", w:"zoo", p:"/zuː/", f:"zoo", ipa:"sound_Z.mp3"},
+      {s:"/ʃ/", w:"she", p:"/ʃiː/", f:"she", ipa:"sound_ʃ.mp3"},
+      {s:"/ʒ/", w:"vision", p:"/ˈvɪʒən/", f:"vision", ipa:"sound_ʒ.mp3"},
+      {s:"/h/", w:"how", p:"/haʊ/", f:"how", ipa:"sound_h.mp3"},
+      {s:"/tʃ/", w:"chip", p:"/tʃɪp/", f:"chip", ipa:"sound_ʧ.mp3"},
+      {s:"/dʒ/", w:"jar", p:"/dʒɑː/", f:"jar", ipa:"sound_ʤ.mp3"},
+      {s:"/m/", w:"man", p:"/mæn/", f:"man", ipa:"sound_m.mp3"},
+      {s:"/n/", w:"now", p:"/naʊ/", f:"now", ipa:"sound_n.mp3"},
+      {s:"/ŋ/", w:"sing", p:"/sɪŋ/", f:"sing", ipa:"sound_ŋ.mp3"},
+      {s:"/l/", w:"leg", p:"/leɡ/", f:"leg", ipa:"sound_l.mp3"},
+      {s:"/r/", w:"red", p:"/red/", f:"red", ipa:"sound_r.mp3"},
+      {s:"/j/", w:"yes", p:"/jes/", f:"yes", ipa:"sound_j.mp3"},
+      {s:"/w/", w:"wet", p:"/wet/", f:"wet", ipa:"sound_w.mp3"},
+    ],
+  },
+];
+
+const state = {
+  accent:"uk",
+  currentAudio:null,
+  currentCard:null,
+  cache:new Map(),
+};
+
+function getAudio(path) {
+  let audio = state.cache.get(path);
+  if (!audio) {
+    audio = new Audio(path);
+    audio.preload = "auto";
+    state.cache.set(path, audio);
+  }
+  return audio;
+}
+
+function play(path, card) {
+  if (state.currentAudio) {
+    state.currentAudio.pause();
+    state.currentAudio.currentTime = 0;
+  }
+  if (state.currentCard) state.currentCard.classList.remove("playing");
+  const audio = getAudio(path);
+  state.currentAudio = audio;
+  state.currentCard = card;
+  card.classList.add("playing");
+  audio.onended = () => card.classList.remove("playing");
+  audio.onerror = () => card.classList.remove("playing");
+  audio.currentTime = 0;
+  audio.play().catch(() => card.classList.remove("playing"));
+}
+
+function render() {
+  const chart = document.getElementById("chart");
+  chart.innerHTML = categories.map(category => `
+    <section class="category">
+      <div class="section-label">
+        <h2>${category.title}</h2>
+        <span>${category.hint}</span>
+      </div>
+      <div class="ipa-grid">
+        ${category.items.map(item => `
+          <article class="ipa-card" data-ipa="${item.ipa}" data-word="${item.f}">
+            <div class="ipa-symbol" data-action="phoneme">${item.s}</div>
+            <div class="divider"></div>
+            <div class="ipa-word" data-action="word">${item.w}</div>
+            <div class="word-ipa" data-action="word">${item.p}</div>
+          </article>
+        `).join("")}
+      </div>
+    </section>
+  `).join("");
+}
+
+document.querySelector(".accent-toggle").addEventListener("click", event => {
+  const button = event.target.closest(".accent-btn");
+  if (!button) return;
+  state.accent = button.dataset.accent;
+  document.querySelectorAll(".accent-btn").forEach(btn => {
+    const active = btn === button;
+    btn.classList.toggle("active", active);
+    btn.setAttribute("aria-pressed", String(active));
+  });
+});
+
+document.getElementById("chart").addEventListener("pointerdown", event => {
+  const card = event.target.closest(".ipa-card");
+  if (!card) return;
+  const rect = card.getBoundingClientRect();
+  card.style.setProperty("--x", `${event.clientX - rect.left - rect.width / 2}px`);
+  card.style.setProperty("--y", `${event.clientY - rect.top - rect.height / 2}px`);
+});
+
+document.getElementById("chart").addEventListener("click", event => {
+  const card = event.target.closest(".ipa-card");
+  if (!card) return;
+  const isWord = event.target.closest("[data-action='word']");
+  const path = isWord
+    ? `${WORD_DIR}${card.dataset.word}_${state.accent}.mp3`
+    : `${PHONEME_DIR}${card.dataset.ipa}`;
+  play(path, card);
+});
+
+render();
+</script>
+</body>
+</html>
