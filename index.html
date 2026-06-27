@@ -441,6 +441,10 @@ const categories = [
 
 categories.forEach(cat => cat.items.forEach(item => { item.id = item.s.replace(/\//g, ''); }));
 
+const LOCAL_WORD_PHONETICS = new Map(
+  categories.flatMap(category => category.items.map(item => [item.f.toLowerCase(), item.p]))
+);
+
 const IPA_GROUPS = {
   short_vowels:  {ids:['ɪ','e','æ','ɒ','ʊ','ʌ','ə'],           color:'#39d5ff', label:'短元音'},
   long_vowels:   {ids:['iː','ɑː','ɔː','uː','ɜː'],             color:'#628bff', label:'长元音'},
@@ -452,12 +456,13 @@ const IPA_GROUPS = {
 
 const IPA_ALIASES = {
   'ɡ':'g',
+  'ɑʊ':'aʊ',
   'ʧ':'tʃ',
   'ʤ':'dʒ',
 };
 
 const ALL_IPA_IDS = [
-  'iː','ɑː','ɔː','uː','ɜː','eɪ','aɪ','ɔɪ','aʊ','əʊ','ɪə','eə','ʊə',
+  'iː','ɑː','ɔː','uː','ɜː','eɪ','aɪ','ɔɪ','ɑʊ','aʊ','əʊ','ɪə','eə','ʊə',
   'tʃ','dʒ','ʃ','ʒ','θ','ð','ŋ',
   'ɪ','e','æ','ɒ','ʊ','ʌ','ə','p','b','t','d','k','g','f','v','s','z','h','m','n','l','r','j','w'
 ];
@@ -466,7 +471,7 @@ const US_TO_UK_PATTERNS = [
   {from:/oʊ/g, to:'əʊ'},
   {from:/ɚ/g, to:'ə'},
   {from:/ɝ/g, to:'ɜː'},
-  {from:/ɑ(?!ː)/g, to:'ɒ'},
+  {from:/ɑ(?!ː|ʊ)/g, to:'ɒ'},
 ];
 
 const ipaRegistry = new Map();
@@ -537,6 +542,7 @@ function normalizeIpaText(text) {
     .replace(/ʧ/g, 'tʃ')
     .replace(/ʤ/g, 'dʒ')
     .replace(/ɡ/g, 'g')
+    .replace(/ɑ(?=ʊ)/g, 'a')
     .replace(/ɔ(?!ː|ɪ)/g, 'ɒ')
     .replace(/i(?!ː)/g, 'ɪ')
     .replace(/ɹ/g, 'r');
@@ -567,7 +573,7 @@ function parseIpaString(ipaStr, accent) {
     let matched = false;
     for (const id of ALL_IPA_IDS) {
       if (cleaned.substring(i, i + id.length) === id) {
-        tokens.push(id);
+        tokens.push(normalizeIpaId(id));
         i += id.length;
         matched = true;
         break;
@@ -601,6 +607,7 @@ function extractPhonetic(data, accent) {
   if (!entry || !entry.phonetics || entry.phonetics.length === 0) {
     throw new Error('未找到音标数据');
   }
+  const localPhoneticText = LOCAL_WORD_PHONETICS.get((entry.word || '').toLowerCase());
   const phoneticsWithText = entry.phonetics.filter(p => p.text);
   const phoneticsWithAudio = entry.phonetics.filter(p => p.audio);
   let phonetic = phoneticsWithText.find(p => {
@@ -614,7 +621,7 @@ function extractPhonetic(data, accent) {
   phoneticsWithAudio.forEach(p => {
     if (!audioUrls.includes(p.audio)) audioUrls.push(p.audio);
   });
-  return { word: entry.word, phoneticText: phonetic.text || '', audioUrls };
+  return { word: entry.word, phoneticText: localPhoneticText || phonetic.text || '', audioUrls };
 }
 
 async function fetchTranslation(word) {
@@ -633,7 +640,7 @@ function escapeHtml(text) {
 }
 
 function highlightCards(tokenIds) {
-  state.highlightedIds = new Set(tokenIds);
+  state.highlightedIds = new Set(tokenIds.map(normalizeIpaId));
   document.querySelectorAll('.ipa-card').forEach(card => {
     const id = card.dataset.ipaId;
     if (state.highlightedIds.has(id)) {
