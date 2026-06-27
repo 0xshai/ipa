@@ -1,707 +1,1465 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>国际音标学习</title>
-<style>
-:root{
-  color-scheme:dark;
-  --bg:#070a12;
-  --line:rgba(116,185,255,.22);
-  --line-soft:rgba(255,255,255,.1);
-  --text:#eef6ff;
-  --muted:#8fa5bd;
-  --cyan:#39d5ff;
-  --blue:#628bff;
-  --green:#35f0ac;
-}
-*{box-sizing:border-box;margin:0;padding:0}
-body{
-  min-height:100vh;
-  padding:16px 12px 30px;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif;
-  background:
-    radial-gradient(circle at 15% 10%,rgba(57,213,255,.18),transparent 28%),
-    radial-gradient(circle at 85% 0,rgba(98,139,255,.2),transparent 30%),
-    linear-gradient(135deg,#05070d 0%,#0c1220 48%,#071219 100%);
-  color:var(--text);
-}
-body::before{
-  content:"";
-  position:fixed;
-  inset:0;
-  pointer-events:none;
-  background-image:
-    linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);
-  background-size:34px 34px;
-  mask-image:linear-gradient(to bottom,rgba(0,0,0,.82),transparent 78%);
-}
-.app{position:relative;max-width:1180px;margin:0 auto}
-.topbar{
-  position:sticky;
-  top:0;
-  z-index:20;
-  width:100%;
-  margin:0 auto 14px;
-  padding:12px;
-  border:1px solid var(--line);
-  border-radius:12px;
-  background:rgba(7,10,18,.76);
-  backdrop-filter:blur(18px);
-  box-shadow:0 14px 40px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08);
-}
-.topbar-inner{display:grid;grid-template-columns:1fr minmax(140px,180px);gap:14px;align-items:center}
-.topbar-head{display:contents}
-.topbar-head>div:first-child{grid-column:1}
-.topbar-head .accent-toggle{grid-column:2}
-.search-box{max-width:none}
-.search-section{display:flex;justify-content:center;margin-bottom:14px}
-h1{font-size:24px;font-weight:780;letter-spacing:0}
-.subtitle{font-size:13px;color:var(--muted);margin-top:3px}
-.accent-toggle{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:6px;
-  padding:5px;
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:10px;
-  background:rgba(255,255,255,.06);
-}
-.accent-btn{
-  min-height:42px;
-  border:0;
-  border-radius:8px;
-  color:#9eb1c8;
-  background:transparent;
-  font-size:15px;
-  font-weight:800;
-  cursor:pointer;
-  transition:background .16s,color .16s,box-shadow .16s,transform .16s;
-}
-.accent-btn.active{
-  color:#031019;
-  background:linear-gradient(135deg,var(--cyan),var(--green));
-  box-shadow:0 0 22px rgba(57,213,255,.38);
-}
-.accent-btn:active{transform:scale(.98)}
-#chart{display:grid;gap:14px}
-.section-label{display:flex;align-items:center;justify-content:space-between;margin:0 0 8px;padding:0 2px}
-.section-label h2{font-size:15px;font-weight:780;color:#d9edff}
-.section-label span{font-size:12px;color:var(--muted)}
-.ipa-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(94px,1fr));gap:8px}
-.ipa-card{
-  position:relative;
-  min-height:112px;
-  display:grid;
-  grid-template-rows:1fr auto auto auto;
-  align-items:center;
-  overflow:hidden;
-  padding:9px 7px;
-  border:1px solid var(--line-soft);
-  border-radius:10px;
-  background:linear-gradient(180deg,rgba(17,27,48,.92),rgba(10,16,30,.92));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.06);
-  text-align:center;
-  cursor:pointer;
-  user-select:none;
-  transition:transform .14s,border-color .14s,box-shadow .14s,background .14s;
-}
-.ipa-card::before{
-  content:"";
-  position:absolute;
-  inset:-70% -30%;
-  opacity:0;
-  background:radial-gradient(circle,rgba(57,213,255,.34),transparent 34%);
-  transform:translate(var(--x,0),var(--y,0)) scale(.6);
-  transition:opacity .22s,transform .22s;
-}
-.ipa-card:hover{
-  transform:translateY(-2px);
-  border-color:rgba(57,213,255,.44);
-  box-shadow:0 10px 28px rgba(0,0,0,.28),0 0 22px rgba(57,213,255,.12);
-}
-.ipa-card.playing{
-  border-color:var(--cyan);
-  box-shadow:0 0 0 1px rgba(57,213,255,.28),0 0 28px rgba(57,213,255,.28);
-}
-.ipa-card.playing::before{opacity:1;transform:translate(var(--x,0),var(--y,0)) scale(1)}
-.ipa-symbol,.ipa-word{position:relative;z-index:1}
-.ipa-symbol{
-  align-self:end;
-  font-family:"Noto Sans","Segoe UI",sans-serif;
-  font-size:30px;
-  line-height:1;
-  font-weight:820;
-  color:#f7fbff;
-  text-shadow:0 0 18px rgba(57,213,255,.34);
-}
-.divider{
-  position:relative;
-  z-index:1;
-  width:68%;
-  height:1px;
-  margin:8px auto;
-  background:linear-gradient(90deg,transparent,rgba(57,213,255,.42),rgba(53,240,172,.25),transparent);
-}
-.ipa-word{
-  align-self:start;
-  font-size:19px;
-  line-height:1.05;
-  font-weight:760;
-  color:#b7c9dd;
-  overflow-wrap:anywhere;
-}
-.word-ipa{
-  position:relative;
-  z-index:1;
-  margin-top:4px;
-  font-family:"Noto Sans","Segoe UI",sans-serif;
-  font-size:12px;
-  line-height:1.1;
-  color:rgba(183,201,221,.68);
-  white-space:nowrap;
-}
-.search-wrap{position:relative;display:flex;align-items:center;gap:8px}
-.search-box{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  padding:0 12px;
-  max-width:360px;
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:10px;
-  background:rgba(255,255,255,.06);
-  transition:border-color .2s,box-shadow .2s;
-}
-.search-box:focus-within{
-  border-color:rgba(57,213,255,.55);
-  box-shadow:0 0 18px rgba(57,213,255,.14),inset 0 1px 0 rgba(255,255,255,.08);
-}
-.search-box input{
-  flex:1;
-  min-height:42px;
-  border:0;
-  background:transparent;
-  color:var(--text);
-  font-size:15px;
-  outline:none;
-}
-.search-box input::placeholder{color:var(--muted)}
-.search-box .search-icon{width:18px;height:18px;color:var(--muted);flex-shrink:0}
-.search-box .clear-btn{
-  display:none;
-  width:22px;height:22px;
-  align-items:center;justify-content:center;
-  border:0;border-radius:50%;
-  background:rgba(255,255,255,.12);
-  color:var(--muted);
-  font-size:13px;
-  cursor:pointer;
-  flex-shrink:0;
-}
-.search-box .clear-btn.visible{display:flex}
-.search-box .clear-btn:hover{background:rgba(255,255,255,.2);color:var(--text)}
-.search-btn{
-  min-height:42px;
-  padding:0 18px;
-  border:0;border-radius:10px;
-  background:linear-gradient(135deg,var(--cyan),var(--green));
-  color:#031019;
-  font-size:14px;font-weight:800;
-  cursor:pointer;
-  transition:transform .16s,box-shadow .16s;
-  flex-shrink:0;
-}
-.search-btn:hover{box-shadow:0 0 22px rgba(57,213,255,.35)}
-.search-btn:active{transform:scale(.97)}
-.search-btn.loading{opacity:.7;pointer-events:none}
-.search-error{
-  position:absolute;
-  top:calc(100% + 6px);
-  left:0;
-  font-size:12px;
-  color:#ff6b6b;
-  opacity:0;
-  transition:opacity .3s;
-  pointer-events:none;
-}
-.search-error.show{opacity:1}
-#search-result{
-  display:none;
-  margin-bottom:14px;
-  padding:14px;
-  border:1px solid var(--line-soft);
-  border-radius:12px;
-  background:linear-gradient(180deg,rgba(17,27,48,.92),rgba(10,16,30,.92));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 14px 40px rgba(0,0,0,.22);
-  animation:fadeIn .26s ease;
-}
-#search-result.active{display:block}
-@keyframes fadeIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
-.result-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
-.result-word{font-size:20px;font-weight:800;color:#f7fbff}
-.result-phonetic{font-family:"Noto Sans","Segoe UI",sans-serif;font-size:20px;font-weight:800;margin-left:10px}
-.result-phonetic .ph{border-radius:6px;padding:0 2px}
-.result-def{display:inline;font-family:"Noto Sans SC","Segoe UI",sans-serif;font-size:18px;color:var(--green);margin-left:16px;font-weight:400}
-.result-play{
-  width:36px;height:36px;
-  display:flex;align-items:center;justify-content:center;
-  border:1px solid rgba(57,213,255,.35);border-radius:50%;
-  background:rgba(57,213,255,.1);
-  color:var(--cyan);
-  cursor:pointer;
-  transition:transform .16s,box-shadow .16s;
-  flex-shrink:0;
-}
-.result-play:hover{box-shadow:0 0 18px rgba(57,213,255,.28);transform:scale(1.05)}
-.result-play:active{transform:scale(.95)}
-.result-close{
-  width:28px;height:28px;
-  display:flex;align-items:center;justify-content:center;
-  border:0;border-radius:50%;
-  background:rgba(255,255,255,.08);
-  color:var(--muted);
-  font-size:16px;
-  cursor:pointer;
-  transition:background .16s,color .16s;
-  flex-shrink:0;
-}
-.result-close:hover{background:rgba(255,255,255,.15);color:var(--text)}
-.result-label{font-size:12px;color:var(--muted);margin-bottom:8px}
-.token-list{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.token-pill{
-  display:inline-flex;align-items:center;gap:6px;
-  padding:6px 12px;
-  border-radius:20px;
-  font-family:"Noto Sans","Segoe UI",sans-serif;
-  font-size:16px;font-weight:700;
-  color:#031019;
-  cursor:pointer;
-  user-select:none;
-  transition:transform .14s,box-shadow .14s;
-}
-.token-pill:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.3)}
-.token-pill:active{transform:scale(.96)}
-.token-pill .token-group{font-size:10px;font-weight:700;opacity:.72;text-transform:uppercase;letter-spacing:.4px}
-.ipa-card.highlighted{
-  border-color:var(--green);
-  box-shadow:0 0 0 1px rgba(53,240,172,.28),0 0 28px rgba(53,240,172,.28);
-  background:linear-gradient(180deg,rgba(17,48,35,.92),rgba(10,30,20,.92));
-}
-.ipa-card.dimmed{opacity:.35;filter:grayscale(.6)}
-.ipa-card.pulse{animation:pulse .45s ease}
-.site-footer{
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  flex-wrap:wrap;
-  gap:8px 12px;
-  margin:22px auto 0;
-  padding:10px 12px 0;
-  color:var(--muted);
-  font-size:15px;
-  line-height:1.6;
-  text-align:center;
-  user-select:text;
-}
-.site-footer a{
-  color:#d9edff;
-  font-weight:760;
-  text-decoration:none;
-}
-.site-footer a:hover{color:var(--cyan)}
-.site-footer .footer-email{color:#b7c9dd}
-.site-footer .footer-dot{opacity:.5}
-@keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}
-@media(max-width:720px){
-  body{padding:10px 8px 24px}
-  .topbar{border-radius:10px;padding:10px;margin-bottom:10px}
-  .topbar-inner{grid-template-columns:1fr 1fr;gap:9px}
-  .search-box{max-width:none}
-  h1{font-size:22px}
-  .subtitle{font-size:12px}
-  .accent-btn{min-height:40px}
-  .search-box input{min-height:40px;font-size:14px}
-  .search-btn{min-height:40px;padding:0 14px;font-size:13px}
-  .ipa-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
-  .ipa-card{min-height:104px;border-radius:9px;padding:8px 5px}
-  .ipa-symbol{font-size:25px}
-  .divider{margin:7px auto;width:72%}
-  .ipa-word{font-size:16px}
-  .word-ipa{font-size:10px}
-  .result-word{font-size:18px}
-  .result-phonetic{font-size:16px}
-  .token-pill{font-size:14px;padding:5px 10px}
-  .site-footer{margin-top:18px;font-size:14px}
-}
-@media(max-width:420px){
-  .ipa-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
-}
-</style>
-</head>
-<body>
-<main class="app">
-  <header class="topbar">
-    <div class="topbar-inner">
-      <div class="topbar-head">
-        <div>
-          <h1>国际音标学习</h1>
-          <p class="subtitle">点音标播音标发音，点单词播当前口音的单词发音。</p>
-        </div>
-        <div class="accent-toggle" role="group" aria-label="选择单词发音口音">
-          <button class="accent-btn active" type="button" data-accent="uk" aria-pressed="true">GB</button>
-          <button class="accent-btn" type="button" data-accent="us" aria-pressed="false">US</button>
-        </div>
-      </div>
-    </div>
-  </header>
-  <div class="search-section">
-    <div class="search-wrap">
-      <div class="search-box">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-        <input type="text" id="word-input" placeholder="输入单词查询音标…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-        <button class="clear-btn" id="clear-btn" type="button" aria-label="清除">&#x2715;</button>
-      </div>
-      <button class="search-btn" id="search-btn" type="button">查询</button>
-      <div class="search-error" id="search-error"></div>
-    </div>
-  </div>
-  <div id="search-result"></div>
-  <div id="chart"></div>
-  <footer class="site-footer">
-    <span>作者 <a href="https://80h.pages.dev/" target="_blank" rel="noopener noreferrer">Shaifx</a></span>
-    <span class="footer-dot" aria-hidden="true">·</span>
-    <span class="footer-email">shaifx@hotmail.com</span>
-  </footer>
-</main>
-<script>
-const PHONEME_DIR = "sounds/phonemes/";
-const WORD_DIR = "sounds/words/";
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+        <title>国际音标学习</title>
+        <style>
+            :root {
+                color-scheme: dark;
+                --bg: #070a12;
+                --line: rgba(116, 185, 255, 0.22);
+                --line-soft: rgba(255, 255, 255, 0.1);
+                --text: #eef6ff;
+                --muted: #8fa5bd;
+                --cyan: #39d5ff;
+                --blue: #628bff;
+                --green: #35f0ac;
+            }
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+            body {
+                min-height: 100vh;
+                padding: 16px 12px 30px;
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI",
+                    "Noto Sans SC", sans-serif;
+                background:
+                    radial-gradient(
+                        circle at 15% 10%,
+                        rgba(57, 213, 255, 0.18),
+                        transparent 28%
+                    ),
+                    radial-gradient(
+                        circle at 85% 0,
+                        rgba(98, 139, 255, 0.2),
+                        transparent 30%
+                    ),
+                    linear-gradient(
+                        135deg,
+                        #05070d 0%,
+                        #0c1220 48%,
+                        #071219 100%
+                    );
+                color: var(--text);
+            }
+            body::before {
+                content: "";
+                position: fixed;
+                inset: 0;
+                pointer-events: none;
+                background-image:
+                    linear-gradient(
+                        rgba(255, 255, 255, 0.035) 1px,
+                        transparent 1px
+                    ),
+                    linear-gradient(
+                        90deg,
+                        rgba(255, 255, 255, 0.035) 1px,
+                        transparent 1px
+                    );
+                background-size: 34px 34px;
+                mask-image: linear-gradient(
+                    to bottom,
+                    rgba(0, 0, 0, 0.82),
+                    transparent 78%
+                );
+            }
+            .app {
+                position: relative;
+                max-width: 1180px;
+                margin: 0 auto;
+            }
+            .topbar {
+                position: sticky;
+                top: 0;
+                z-index: 20;
+                width: 100%;
+                margin: 0 auto 14px;
+                padding: 12px;
+                border: 1px solid var(--line);
+                border-radius: 12px;
+                background: rgba(7, 10, 18, 0.76);
+                backdrop-filter: blur(18px);
+                box-shadow:
+                    0 14px 40px rgba(0, 0, 0, 0.28),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            }
+            .topbar-inner {
+                display: grid;
+                grid-template-columns: 1fr minmax(140px, 180px);
+                gap: 14px;
+                align-items: center;
+            }
+            .topbar-head {
+                display: contents;
+            }
+            .topbar-head > div:first-child {
+                grid-column: 1;
+            }
+            .topbar-head .accent-toggle {
+                grid-column: 2;
+            }
+            .search-box {
+                max-width: none;
+            }
+            .search-section {
+                display: flex;
+                justify-content: center;
+                margin-bottom: 14px;
+            }
+            h1 {
+                font-size: 24px;
+                font-weight: 780;
+                letter-spacing: 0;
+            }
+            .subtitle {
+                font-size: 13px;
+                color: var(--muted);
+                margin-top: 3px;
+            }
+            .accent-toggle {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 6px;
+                padding: 5px;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 10px;
+                background: rgba(255, 255, 255, 0.06);
+            }
+            .accent-btn {
+                min-height: 42px;
+                border: 0;
+                border-radius: 8px;
+                color: #9eb1c8;
+                background: transparent;
+                font-size: 15px;
+                font-weight: 800;
+                cursor: pointer;
+                transition:
+                    background 0.16s,
+                    color 0.16s,
+                    box-shadow 0.16s,
+                    transform 0.16s;
+            }
+            .accent-btn.active {
+                color: #031019;
+                background: linear-gradient(135deg, var(--cyan), var(--green));
+                box-shadow: 0 0 22px rgba(57, 213, 255, 0.38);
+            }
+            .accent-btn:active {
+                transform: scale(0.98);
+            }
+            #chart {
+                display: grid;
+                gap: 14px;
+            }
+            .section-label {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                margin: 0 0 8px;
+                padding: 0 2px;
+            }
+            .section-label h2 {
+                font-size: 15px;
+                font-weight: 780;
+                color: #d9edff;
+            }
+            .section-label span {
+                font-size: 12px;
+                color: var(--muted);
+            }
+            .ipa-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(94px, 1fr));
+                gap: 8px;
+            }
+            .ipa-card {
+                position: relative;
+                min-height: 112px;
+                display: grid;
+                grid-template-rows: 1fr auto auto auto;
+                align-items: center;
+                overflow: hidden;
+                padding: 9px 7px;
+                border: 1px solid var(--line-soft);
+                border-radius: 10px;
+                background: linear-gradient(
+                    180deg,
+                    rgba(17, 27, 48, 0.92),
+                    rgba(10, 16, 30, 0.92)
+                );
+                box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+                text-align: center;
+                cursor: pointer;
+                user-select: none;
+                transition:
+                    transform 0.14s,
+                    border-color 0.14s,
+                    box-shadow 0.14s,
+                    background 0.14s;
+            }
+            .ipa-card::before {
+                content: "";
+                position: absolute;
+                inset: -70% -30%;
+                opacity: 0;
+                background: radial-gradient(
+                    circle,
+                    rgba(57, 213, 255, 0.34),
+                    transparent 34%
+                );
+                transform: translate(var(--x, 0), var(--y, 0)) scale(0.6);
+                transition:
+                    opacity 0.22s,
+                    transform 0.22s;
+            }
+            .ipa-card:hover {
+                transform: translateY(-2px);
+                border-color: rgba(57, 213, 255, 0.44);
+                box-shadow:
+                    0 10px 28px rgba(0, 0, 0, 0.28),
+                    0 0 22px rgba(57, 213, 255, 0.12);
+            }
+            .ipa-card.playing {
+                border-color: var(--cyan);
+                box-shadow:
+                    0 0 0 1px rgba(57, 213, 255, 0.28),
+                    0 0 28px rgba(57, 213, 255, 0.28);
+            }
+            .ipa-card.playing::before {
+                opacity: 1;
+                transform: translate(var(--x, 0), var(--y, 0)) scale(1);
+            }
+            .ipa-symbol,
+            .ipa-word {
+                position: relative;
+                z-index: 1;
+            }
+            .ipa-symbol {
+                align-self: end;
+                font-family: "Noto Sans", "Segoe UI", sans-serif;
+                font-size: 30px;
+                line-height: 1;
+                font-weight: 820;
+                color: #f7fbff;
+                text-shadow: 0 0 18px rgba(57, 213, 255, 0.34);
+            }
+            .divider {
+                position: relative;
+                z-index: 1;
+                width: 68%;
+                height: 1px;
+                margin: 8px auto;
+                background: linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(57, 213, 255, 0.42),
+                    rgba(53, 240, 172, 0.25),
+                    transparent
+                );
+            }
+            .ipa-word {
+                align-self: start;
+                font-size: 19px;
+                line-height: 1.05;
+                font-weight: 760;
+                color: #b7c9dd;
+                overflow-wrap: anywhere;
+            }
+            .word-ipa {
+                position: relative;
+                z-index: 1;
+                margin-top: 4px;
+                font-family: "Noto Sans", "Segoe UI", sans-serif;
+                font-size: 12px;
+                line-height: 1.1;
+                color: rgba(183, 201, 221, 0.68);
+                white-space: nowrap;
+            }
+            .search-wrap {
+                position: relative;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .search-box {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 0 12px;
+                max-width: 360px;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 10px;
+                background: rgba(255, 255, 255, 0.06);
+                transition:
+                    border-color 0.2s,
+                    box-shadow 0.2s;
+            }
+            .search-box:focus-within {
+                border-color: rgba(57, 213, 255, 0.55);
+                box-shadow:
+                    0 0 18px rgba(57, 213, 255, 0.14),
+                    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            }
+            .search-box input {
+                flex: 1;
+                min-height: 42px;
+                border: 0;
+                background: transparent;
+                color: var(--text);
+                font-size: 15px;
+                outline: none;
+            }
+            .search-box input::placeholder {
+                color: var(--muted);
+            }
+            .search-box .search-icon {
+                width: 18px;
+                height: 18px;
+                color: var(--muted);
+                flex-shrink: 0;
+            }
+            .search-box .clear-btn {
+                display: none;
+                width: 22px;
+                height: 22px;
+                align-items: center;
+                justify-content: center;
+                border: 0;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.12);
+                color: var(--muted);
+                font-size: 13px;
+                cursor: pointer;
+                flex-shrink: 0;
+            }
+            .search-box .clear-btn.visible {
+                display: flex;
+            }
+            .search-box .clear-btn:hover {
+                background: rgba(255, 255, 255, 0.2);
+                color: var(--text);
+            }
+            .search-btn {
+                min-height: 42px;
+                padding: 0 18px;
+                border: 0;
+                border-radius: 10px;
+                background: linear-gradient(135deg, var(--cyan), var(--green));
+                color: #031019;
+                font-size: 14px;
+                font-weight: 800;
+                cursor: pointer;
+                transition:
+                    transform 0.16s,
+                    box-shadow 0.16s;
+                flex-shrink: 0;
+            }
+            .search-btn:hover {
+                box-shadow: 0 0 22px rgba(57, 213, 255, 0.35);
+            }
+            .search-btn:active {
+                transform: scale(0.97);
+            }
+            .search-btn.loading {
+                opacity: 0.7;
+                pointer-events: none;
+            }
+            .search-error {
+                position: absolute;
+                top: calc(100% + 6px);
+                left: 0;
+                font-size: 12px;
+                color: #ff6b6b;
+                opacity: 0;
+                transition: opacity 0.3s;
+                pointer-events: none;
+            }
+            .search-error.show {
+                opacity: 1;
+            }
+            #search-result {
+                display: none;
+                margin-bottom: 14px;
+                padding: 14px;
+                border: 1px solid var(--line-soft);
+                border-radius: 12px;
+                background: linear-gradient(
+                    180deg,
+                    rgba(17, 27, 48, 0.92),
+                    rgba(10, 16, 30, 0.92)
+                );
+                box-shadow:
+                    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+                    0 14px 40px rgba(0, 0, 0, 0.22);
+                animation: fadeIn 0.26s ease;
+            }
+            #search-result.active {
+                display: block;
+            }
+            @keyframes fadeIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(-6px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+            .result-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                margin-bottom: 10px;
+            }
+            .result-word {
+                font-size: 20px;
+                font-weight: 800;
+                color: #f7fbff;
+            }
+            .result-phonetic {
+                font-family: "Noto Sans", "Segoe UI", sans-serif;
+                font-size: 20px;
+                font-weight: 800;
+                margin-left: 10px;
+            }
+            .result-phonetic .ph {
+                border-radius: 6px;
+                padding: 0 2px;
+            }
+            .result-def {
+                display: inline;
+                font-family: "Noto Sans SC", "Segoe UI", sans-serif;
+                font-size: 18px;
+                color: var(--green);
+                margin-left: 16px;
+                font-weight: 400;
+            }
+            .result-play {
+                width: 36px;
+                height: 36px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid rgba(57, 213, 255, 0.35);
+                border-radius: 50%;
+                background: rgba(57, 213, 255, 0.1);
+                color: var(--cyan);
+                cursor: pointer;
+                transition:
+                    transform 0.16s,
+                    box-shadow 0.16s;
+                flex-shrink: 0;
+            }
+            .result-play:hover {
+                box-shadow: 0 0 18px rgba(57, 213, 255, 0.28);
+                transform: scale(1.05);
+            }
+            .result-play:active {
+                transform: scale(0.95);
+            }
+            .result-close {
+                width: 28px;
+                height: 28px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                border: 0;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.08);
+                color: var(--muted);
+                font-size: 16px;
+                cursor: pointer;
+                transition:
+                    background 0.16s,
+                    color 0.16s;
+                flex-shrink: 0;
+            }
+            .result-close:hover {
+                background: rgba(255, 255, 255, 0.15);
+                color: var(--text);
+            }
+            .result-label {
+                font-size: 12px;
+                color: var(--muted);
+                margin-bottom: 8px;
+            }
+            .token-list {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                align-items: center;
+            }
+            .token-pill {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                padding: 6px 12px;
+                border-radius: 20px;
+                font-family: "Noto Sans", "Segoe UI", sans-serif;
+                font-size: 16px;
+                font-weight: 700;
+                color: #031019;
+                cursor: pointer;
+                user-select: none;
+                transition:
+                    transform 0.14s,
+                    box-shadow 0.14s;
+            }
+            .token-pill:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            }
+            .token-pill:active {
+                transform: scale(0.96);
+            }
+            .token-pill .token-group {
+                font-size: 10px;
+                font-weight: 700;
+                opacity: 0.72;
+                text-transform: uppercase;
+                letter-spacing: 0.4px;
+            }
+            .ipa-card.highlighted {
+                border-color: var(--green);
+                box-shadow:
+                    0 0 0 1px rgba(53, 240, 172, 0.28),
+                    0 0 28px rgba(53, 240, 172, 0.28);
+                background: linear-gradient(
+                    180deg,
+                    rgba(17, 48, 35, 0.92),
+                    rgba(10, 30, 20, 0.92)
+                );
+            }
+            .ipa-card.dimmed {
+                opacity: 0.35;
+                filter: grayscale(0.6);
+            }
+            .ipa-card.pulse {
+                animation: pulse 0.45s ease;
+            }
+            .site-footer {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 8px 12px;
+                margin: 22px auto 0;
+                padding: 10px 12px 0;
+                color: var(--muted);
+                font-size: 15px;
+                line-height: 1.6;
+                text-align: center;
+                user-select: text;
+            }
+            .site-footer a {
+                color: #d9edff;
+                font-weight: 760;
+                text-decoration: none;
+            }
+            .site-footer a:hover {
+                color: var(--cyan);
+            }
+            .site-footer .footer-email {
+                color: #b7c9dd;
+            }
+            .site-footer .footer-dot {
+                opacity: 0.5;
+            }
+            @keyframes pulse {
+                0% {
+                    transform: scale(1);
+                }
+                50% {
+                    transform: scale(1.04);
+                }
+                100% {
+                    transform: scale(1);
+                }
+            }
+            @media (max-width: 720px) {
+                body {
+                    padding: 10px 8px 24px;
+                }
+                .topbar {
+                    border-radius: 10px;
+                    padding: 10px;
+                    margin-bottom: 10px;
+                }
+                .topbar-inner {
+                    grid-template-columns: 1fr 1fr;
+                    gap: 9px;
+                }
+                .search-box {
+                    max-width: none;
+                }
+                h1 {
+                    font-size: 22px;
+                }
+                .subtitle {
+                    font-size: 12px;
+                }
+                .accent-btn {
+                    min-height: 40px;
+                }
+                .search-box input {
+                    min-height: 40px;
+                    font-size: 14px;
+                }
+                .search-btn {
+                    min-height: 40px;
+                    padding: 0 14px;
+                    font-size: 13px;
+                }
+                .ipa-grid {
+                    grid-template-columns: repeat(4, minmax(0, 1fr));
+                    gap: 6px;
+                }
+                .ipa-card {
+                    min-height: 104px;
+                    border-radius: 9px;
+                    padding: 8px 5px;
+                }
+                .ipa-symbol {
+                    font-size: 25px;
+                }
+                .divider {
+                    margin: 7px auto;
+                    width: 72%;
+                }
+                .ipa-word {
+                    font-size: 16px;
+                }
+                .word-ipa {
+                    font-size: 10px;
+                }
+                .result-word {
+                    font-size: 18px;
+                }
+                .result-phonetic {
+                    font-size: 16px;
+                }
+                .token-pill {
+                    font-size: 14px;
+                    padding: 5px 10px;
+                }
+                .site-footer {
+                    margin-top: 18px;
+                    font-size: 14px;
+                }
+            }
+            @media (max-width: 420px) {
+                .ipa-grid {
+                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <main class="app">
+            <header class="topbar">
+                <div class="topbar-inner">
+                    <div class="topbar-head">
+                        <div>
+                            <h1>国际音标学习</h1>
+                            <p class="subtitle">
+                                点音标播音标发音，点单词播当前口音的单词发音。
+                            </p>
+                        </div>
+                        <div
+                            class="accent-toggle"
+                            role="group"
+                            aria-label="选择单词发音口音"
+                        >
+                            <button
+                                class="accent-btn active"
+                                type="button"
+                                data-accent="uk"
+                                aria-pressed="true"
+                            >
+                                GB
+                            </button>
+                            <button
+                                class="accent-btn"
+                                type="button"
+                                data-accent="us"
+                                aria-pressed="false"
+                            >
+                                US
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+            <div class="search-section">
+                <div class="search-wrap">
+                    <div class="search-box">
+                        <svg
+                            class="search-icon"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <circle cx="11" cy="11" r="8" />
+                            <path d="m21 21-4.3-4.3" />
+                        </svg>
+                        <input
+                            type="text"
+                            id="word-input"
+                            placeholder="输入单词查询音标…"
+                            autocomplete="off"
+                            autocorrect="off"
+                            autocapitalize="off"
+                            spellcheck="false"
+                        />
+                        <button
+                            class="clear-btn"
+                            id="clear-btn"
+                            type="button"
+                            aria-label="清除"
+                        >
+                            &#x2715;
+                        </button>
+                    </div>
+                    <button class="search-btn" id="search-btn" type="button">
+                        查询
+                    </button>
+                    <div class="search-error" id="search-error"></div>
+                </div>
+            </div>
+            <div id="search-result"></div>
+            <div id="chart"></div>
+            <footer class="site-footer">
+                <span
+                    >作者
+                    <a
+                        href="https://80h.pages.dev/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        >Shaifx</a
+                    ></span
+                >
+                <span class="footer-dot" aria-hidden="true">·</span>
+                <span class="footer-email">shaifx@hotmail.com</span>
+            </footer>
+        </main>
+        <script>
+            const PHONEME_DIR = "sounds/phonemes/";
+            const WORD_DIR = "sounds/words/";
 
-const categories = [
-  {
-    title:"元音",
-    hint:"Vowels · 20",
-    items:[
-      {s:"/ɪ/", w:"sit", p:"/sɪt/", f:"sit", ipa:"sound_short_i.mp3"},
-      {s:"/e/", w:"bed", p:"/bed/", f:"bed", ipa:"sound_e.mp3"},
-      {s:"/æ/", w:"cat", p:"/kæt/", f:"cat", ipa:"sound_æ.mp3"},
-      {s:"/ɒ/", w:"hot", p:"/hɒt/", f:"hot", ipa:"sound_ɒ.mp3"},
-      {s:"/ʊ/", w:"book", p:"/bʊk/", f:"book", ipa:"sound_u.mp3"},
-      {s:"/ʌ/", w:"cup", p:"/kʌp/", f:"cup", ipa:"sound_ʌ.mp3"},
-      {s:"/ə/", w:"about", p:"/əˈbaʊt/", f:"about", ipa:"sound_ə.mp3"},
-      {s:"/iː/", w:"see", p:"/siː/", f:"see", ipa:"sound_i.mp3"},
-      {s:"/ɑː/", w:"car", p:"/kɑː/", f:"car", ipa:"sound_long_ɑ.mp3"},
-      {s:"/ɔː/", w:"law", p:"/lɔː/", f:"law", ipa:"sound_long_ɔ.mp3"},
-      {s:"/uː/", w:"food", p:"/fuːd/", f:"food", ipa:"sound_long_u.mp3"},
-      {s:"/ɜː/", w:"bird", p:"/bɜːd/", f:"bird", ipa:"sound_long_ə.mp3"},
-      {s:"/eɪ/", w:"day", p:"/deɪ/", f:"day", ipa:"sound_eɪ.mp3"},
-      {s:"/aɪ/", w:"my", p:"/maɪ/", f:"my", ipa:"sound_aɪ.mp3"},
-      {s:"/ɔɪ/", w:"boy", p:"/bɔɪ/", f:"boy", ipa:"sound_ɔɪ.mp3"},
-      {s:"/aʊ/", w:"now", p:"/naʊ/", f:"now", ipa:"sound_aʊ.mp3"},
-      {s:"/əʊ/", w:"go", p:"/ɡəʊ/", f:"go", ipa:"sound_əʊ.mp3"},
-      {s:"/ɪə/", w:"ear", p:"/ɪə/", f:"ear", ipa:"sound_ɪə.mp3"},
-      {s:"/eə/", w:"air", p:"/eə/", f:"air", ipa:"sound_long_e.mp3"},
-      {s:"/ʊə/", w:"pure", p:"/pjʊə/", f:"pure", ipa:"sound_ʊə.mp3"},
-    ],
-  },
-  {
-    title:"辅音",
-    hint:"Consonants · 24",
-    items:[
-      {s:"/p/", w:"pen", p:"/pen/", f:"pen", ipa:"sound_p.mp3"},
-      {s:"/b/", w:"bad", p:"/bæd/", f:"bad", ipa:"sound_b.mp3"},
-      {s:"/t/", w:"tea", p:"/tiː/", f:"tea", ipa:"sound_t.mp3"},
-      {s:"/d/", w:"did", p:"/dɪd/", f:"did", ipa:"sound_d.mp3"},
-      {s:"/k/", w:"cat", p:"/kæt/", f:"cat", ipa:"sound_k.mp3"},
-      {s:"/g/", w:"got", p:"/ɡɒt/", f:"got", ipa:"sound_g.mp3"},
-      {s:"/f/", w:"fall", p:"/fɔːl/", f:"fall", ipa:"sound_f.mp3"},
-      {s:"/v/", w:"voice", p:"/vɔɪs/", f:"voice", ipa:"sound_v.mp3"},
-      {s:"/θ/", w:"think", p:"/θɪŋk/", f:"think", ipa:"sound_θ.mp3"},
-      {s:"/ð/", w:"this", p:"/ðɪs/", f:"this", ipa:"sound_ð.mp3"},
-      {s:"/s/", w:"see", p:"/siː/", f:"see", ipa:"sound_S.mp3"},
-      {s:"/z/", w:"zoo", p:"/zuː/", f:"zoo", ipa:"sound_Z.mp3"},
-      {s:"/ʃ/", w:"she", p:"/ʃiː/", f:"she", ipa:"sound_ʃ.mp3"},
-      {s:"/ʒ/", w:"vision", p:"/ˈvɪʒən/", f:"vision", ipa:"sound_ʒ.mp3"},
-      {s:"/h/", w:"how", p:"/haʊ/", f:"how", ipa:"sound_h.mp3"},
-      {s:"/tʃ/", w:"chip", p:"/tʃɪp/", f:"chip", ipa:"sound_ʧ.mp3"},
-      {s:"/dʒ/", w:"jar", p:"/dʒɑː/", f:"jar", ipa:"sound_ʤ.mp3"},
-      {s:"/m/", w:"man", p:"/mæn/", f:"man", ipa:"sound_m.mp3"},
-      {s:"/n/", w:"now", p:"/naʊ/", f:"now", ipa:"sound_n.mp3"},
-      {s:"/ŋ/", w:"sing", p:"/sɪŋ/", f:"sing", ipa:"sound_ŋ.mp3"},
-      {s:"/l/", w:"leg", p:"/leɡ/", f:"leg", ipa:"sound_l.mp3"},
-      {s:"/r/", w:"red", p:"/red/", f:"red", ipa:"sound_r.mp3"},
-      {s:"/j/", w:"yes", p:"/jes/", f:"yes", ipa:"sound_j.mp3"},
-      {s:"/w/", w:"wet", p:"/wet/", f:"wet", ipa:"sound_w.mp3"},
-    ],
-  },
-];
+            const categories = [
+                {
+                    title: "元音",
+                    hint: "Vowels · 20",
+                    items: [
+                        {
+                            s: "/ɪ/",
+                            w: "sit",
+                            p: "/sɪt/",
+                            f: "sit",
+                            ipa: "sound_short_i.mp3",
+                        },
+                        {
+                            s: "/e/",
+                            w: "bed",
+                            p: "/bed/",
+                            f: "bed",
+                            ipa: "sound_e.mp3",
+                        },
+                        {
+                            s: "/æ/",
+                            w: "cat",
+                            p: "/kæt/",
+                            f: "cat",
+                            ipa: "sound_æ.mp3",
+                        },
+                        {
+                            s: "/ɒ/",
+                            w: "hot",
+                            p: "/hɒt/",
+                            f: "hot",
+                            ipa: "sound_ɒ.mp3",
+                        },
+                        {
+                            s: "/ʊ/",
+                            w: "book",
+                            p: "/bʊk/",
+                            f: "book",
+                            ipa: "sound_u.mp3",
+                        },
+                        {
+                            s: "/ʌ/",
+                            w: "cup",
+                            p: "/kʌp/",
+                            f: "cup",
+                            ipa: "sound_ʌ.mp3",
+                        },
+                        {
+                            s: "/ə/",
+                            w: "about",
+                            p: "/əˈbaʊt/",
+                            f: "about",
+                            ipa: "sound_ə.mp3",
+                        },
+                        {
+                            s: "/iː/",
+                            w: "see",
+                            p: "/siː/",
+                            f: "see",
+                            ipa: "sound_i.mp3",
+                        },
+                        {
+                            s: "/ɑː/",
+                            w: "car",
+                            p: "/kɑː/",
+                            f: "car",
+                            ipa: "sound_long_ɑ.mp3",
+                        },
+                        {
+                            s: "/ɔː/",
+                            w: "law",
+                            p: "/lɔː/",
+                            f: "law",
+                            ipa: "sound_long_ɔ.mp3",
+                        },
+                        {
+                            s: "/uː/",
+                            w: "food",
+                            p: "/fuːd/",
+                            f: "food",
+                            ipa: "sound_long_u.mp3",
+                        },
+                        {
+                            s: "/ɜː/",
+                            w: "bird",
+                            p: "/bɜːd/",
+                            f: "bird",
+                            ipa: "sound_long_ə.mp3",
+                        },
+                        {
+                            s: "/eɪ/",
+                            w: "day",
+                            p: "/deɪ/",
+                            f: "day",
+                            ipa: "sound_eɪ.mp3",
+                        },
+                        {
+                            s: "/aɪ/",
+                            w: "my",
+                            p: "/maɪ/",
+                            f: "my",
+                            ipa: "sound_aɪ.mp3",
+                        },
+                        {
+                            s: "/ɔɪ/",
+                            w: "boy",
+                            p: "/bɔɪ/",
+                            f: "boy",
+                            ipa: "sound_ɔɪ.mp3",
+                        },
+                        {
+                            s: "/aʊ/",
+                            w: "now",
+                            p: "/naʊ/",
+                            f: "now",
+                            ipa: "sound_aʊ.mp3",
+                        },
+                        {
+                            s: "/əʊ/",
+                            w: "go",
+                            p: "/ɡəʊ/",
+                            f: "go",
+                            ipa: "sound_əʊ.mp3",
+                        },
+                        {
+                            s: "/ɪə/",
+                            w: "ear",
+                            p: "/ɪə/",
+                            f: "ear",
+                            ipa: "sound_ɪə.mp3",
+                        },
+                        {
+                            s: "/eə/",
+                            w: "air",
+                            p: "/eə/",
+                            f: "air",
+                            ipa: "sound_long_e.mp3",
+                        },
+                        {
+                            s: "/ʊə/",
+                            w: "pure",
+                            p: "/pjʊə/",
+                            f: "pure",
+                            ipa: "sound_ʊə.mp3",
+                        },
+                    ],
+                },
+                {
+                    title: "辅音",
+                    hint: "Consonants · 24",
+                    items: [
+                        {
+                            s: "/p/",
+                            w: "pen",
+                            p: "/pen/",
+                            f: "pen",
+                            ipa: "sound_p.mp3",
+                        },
+                        {
+                            s: "/b/",
+                            w: "bad",
+                            p: "/bæd/",
+                            f: "bad",
+                            ipa: "sound_b.mp3",
+                        },
+                        {
+                            s: "/t/",
+                            w: "tea",
+                            p: "/tiː/",
+                            f: "tea",
+                            ipa: "sound_t.mp3",
+                        },
+                        {
+                            s: "/d/",
+                            w: "did",
+                            p: "/dɪd/",
+                            f: "did",
+                            ipa: "sound_d.mp3",
+                        },
+                        {
+                            s: "/k/",
+                            w: "cat",
+                            p: "/kæt/",
+                            f: "cat",
+                            ipa: "sound_k.mp3",
+                        },
+                        {
+                            s: "/g/",
+                            w: "got",
+                            p: "/ɡɒt/",
+                            f: "got",
+                            ipa: "sound_g.mp3",
+                        },
+                        {
+                            s: "/f/",
+                            w: "fall",
+                            p: "/fɔːl/",
+                            f: "fall",
+                            ipa: "sound_f.mp3",
+                        },
+                        {
+                            s: "/v/",
+                            w: "voice",
+                            p: "/vɔɪs/",
+                            f: "voice",
+                            ipa: "sound_v.mp3",
+                        },
+                        {
+                            s: "/θ/",
+                            w: "think",
+                            p: "/θɪŋk/",
+                            f: "think",
+                            ipa: "sound_θ.mp3",
+                        },
+                        {
+                            s: "/ð/",
+                            w: "this",
+                            p: "/ðɪs/",
+                            f: "this",
+                            ipa: "sound_ð.mp3",
+                        },
+                        {
+                            s: "/s/",
+                            w: "see",
+                            p: "/siː/",
+                            f: "see",
+                            ipa: "sound_S.mp3",
+                        },
+                        {
+                            s: "/z/",
+                            w: "zoo",
+                            p: "/zuː/",
+                            f: "zoo",
+                            ipa: "sound_Z.mp3",
+                        },
+                        {
+                            s: "/ʃ/",
+                            w: "she",
+                            p: "/ʃiː/",
+                            f: "she",
+                            ipa: "sound_ʃ.mp3",
+                        },
+                        {
+                            s: "/ʒ/",
+                            w: "vision",
+                            p: "/ˈvɪʒən/",
+                            f: "vision",
+                            ipa: "sound_ʒ.mp3",
+                        },
+                        {
+                            s: "/h/",
+                            w: "how",
+                            p: "/haʊ/",
+                            f: "how",
+                            ipa: "sound_h.mp3",
+                        },
+                        {
+                            s: "/tʃ/",
+                            w: "chip",
+                            p: "/tʃɪp/",
+                            f: "chip",
+                            ipa: "sound_ʧ.mp3",
+                        },
+                        {
+                            s: "/dʒ/",
+                            w: "jar",
+                            p: "/dʒɑː/",
+                            f: "jar",
+                            ipa: "sound_ʤ.mp3",
+                        },
+                        {
+                            s: "/m/",
+                            w: "man",
+                            p: "/mæn/",
+                            f: "man",
+                            ipa: "sound_m.mp3",
+                        },
+                        {
+                            s: "/n/",
+                            w: "now",
+                            p: "/naʊ/",
+                            f: "now",
+                            ipa: "sound_n.mp3",
+                        },
+                        {
+                            s: "/ŋ/",
+                            w: "sing",
+                            p: "/sɪŋ/",
+                            f: "sing",
+                            ipa: "sound_ŋ.mp3",
+                        },
+                        {
+                            s: "/l/",
+                            w: "leg",
+                            p: "/leɡ/",
+                            f: "leg",
+                            ipa: "sound_l.mp3",
+                        },
+                        {
+                            s: "/r/",
+                            w: "red",
+                            p: "/red/",
+                            f: "red",
+                            ipa: "sound_r.mp3",
+                        },
+                        {
+                            s: "/j/",
+                            w: "yes",
+                            p: "/jes/",
+                            f: "yes",
+                            ipa: "sound_j.mp3",
+                        },
+                        {
+                            s: "/w/",
+                            w: "wet",
+                            p: "/wet/",
+                            f: "wet",
+                            ipa: "sound_w.mp3",
+                        },
+                    ],
+                },
+            ];
 
-categories.forEach(cat => cat.items.forEach(item => { item.id = item.s.replace(/\//g, ''); }));
+            categories.forEach((cat) =>
+                cat.items.forEach((item) => {
+                    item.id = item.s.replace(/\//g, "");
+                }),
+            );
 
-const LOCAL_WORD_PHONETICS = new Map(
-  categories.flatMap(category => category.items.map(item => [item.f.toLowerCase(), item.p]))
-);
+            const LOCAL_WORD_PHONETICS = new Map(
+                categories.flatMap((category) =>
+                    category.items.map((item) => [
+                        item.f.toLowerCase(),
+                        item.p,
+                    ]),
+                ),
+            );
 
-const IPA_GROUPS = {
-  short_vowels:  {ids:['ɪ','e','æ','ɒ','ʊ','ʌ','ə'],           color:'#39d5ff', label:'短元音'},
-  long_vowels:   {ids:['iː','ɑː','ɔː','uː','ɜː'],             color:'#628bff', label:'长元音'},
-  diphthongs:    {ids:['eɪ','aɪ','ɔɪ','aʊ','əʊ','ɪə','eə','ʊə'], color:'#35f0ac', label:'双元音'},
-  voiceless_cons:{ids:['p','t','k','f','θ','s','ʃ','h','tʃ'],   color:'#ff6b6b', label:'清辅音'},
-  voiced_cons:   {ids:['b','d','g','v','ð','z','ʒ','dʒ'],       color:'#ffd166', label:'浊辅音'},
-  sonorants:     {ids:['m','n','ŋ','l','r','j','w'],            color:'#a78bfa', label:'鼻音/近音'},
-};
+            const IPA_GROUPS = {
+                short_vowels: {
+                    ids: ["ɪ", "e", "æ", "ɒ", "ʊ", "ʌ", "ə"],
+                    color: "#39d5ff",
+                    label: "短元音",
+                },
+                long_vowels: {
+                    ids: ["iː", "ɑː", "ɔː", "uː", "ɜː"],
+                    color: "#628bff",
+                    label: "长元音",
+                },
+                diphthongs: {
+                    ids: ["eɪ", "aɪ", "ɔɪ", "aʊ", "əʊ", "ɪə", "eə", "ʊə"],
+                    color: "#35f0ac",
+                    label: "双元音",
+                },
+                voiceless_cons: {
+                    ids: ["p", "t", "k", "f", "θ", "s", "ʃ", "h", "tʃ"],
+                    color: "#ff6b6b",
+                    label: "清辅音",
+                },
+                voiced_cons: {
+                    ids: ["b", "d", "g", "v", "ð", "z", "ʒ", "dʒ"],
+                    color: "#ffd166",
+                    label: "浊辅音",
+                },
+                sonorants: {
+                    ids: ["m", "n", "ŋ", "l", "r", "j", "w"],
+                    color: "#a78bfa",
+                    label: "鼻音/近音",
+                },
+            };
 
-const IPA_ALIASES = {
-  'ɡ':'g',
-  'ɑʊ':'aʊ',
-  'ʧ':'tʃ',
-  'ʤ':'dʒ',
-};
+            const IPA_ALIASES = {
+                ɡ: "g",
+                ɑʊ: "aʊ",
+                ʧ: "tʃ",
+                ʤ: "dʒ",
+            };
 
-const ALL_IPA_IDS = [
-  'iː','ɑː','ɔː','uː','ɜː','eɪ','aɪ','ɔɪ','ɑʊ','aʊ','əʊ','ɪə','eə','ʊə',
-  'tʃ','dʒ','ʃ','ʒ','θ','ð','ŋ',
-  'ɪ','e','æ','ɒ','ʊ','ʌ','ə','p','b','t','d','k','g','f','v','s','z','h','m','n','l','r','j','w'
-];
+            const ALL_IPA_IDS = [
+                "iː",
+                "ɑː",
+                "ɔː",
+                "uː",
+                "ɜː",
+                "eɪ",
+                "aɪ",
+                "ɔɪ",
+                "ɑʊ",
+                "aʊ",
+                "əʊ",
+                "ɪə",
+                "eə",
+                "ʊə",
+                "tʃ",
+                "dʒ",
+                "ʃ",
+                "ʒ",
+                "θ",
+                "ð",
+                "ŋ",
+                "ɪ",
+                "e",
+                "æ",
+                "ɒ",
+                "ʊ",
+                "ʌ",
+                "ə",
+                "p",
+                "b",
+                "t",
+                "d",
+                "k",
+                "g",
+                "f",
+                "v",
+                "s",
+                "z",
+                "h",
+                "m",
+                "n",
+                "l",
+                "r",
+                "j",
+                "w",
+            ];
 
-const US_TO_UK_PATTERNS = [
-  {from:/oʊ/g, to:'əʊ'},
-  {from:/ɚ/g, to:'ə'},
-  {from:/ɝ/g, to:'ɜː'},
-  {from:/ɑ(?!ː|ʊ)/g, to:'ɒ'},
-];
+            const US_TO_UK_PATTERNS = [
+                { from: /oʊ/g, to: "əʊ" },
+                { from: /ɚ/g, to: "ə" },
+                { from: /ɝ/g, to: "ɜː" },
+                { from: /ɑ(?!ː|ʊ)/g, to: "ɒ" },
+            ];
 
-const ipaRegistry = new Map();
+            const ipaRegistry = new Map();
 
-const state = {
-  accent:"uk",
-  currentAudio:null,
-  currentCard:null,
-  cache:new Map(),
-  lastSearchData:null,
-  highlightedIds:new Set(),
-};
+            const state = {
+                accent: "uk",
+                currentAudio: null,
+                currentCard: null,
+                cache: new Map(),
+                lastSearchData: null,
+                highlightedIds: new Set(),
+            };
 
-function getAudio(path) {
-  let audio = state.cache.get(path);
-  if (!audio) {
-    audio = new Audio(path);
-    audio.preload = "auto";
-    state.cache.set(path, audio);
-  }
-  return audio;
-}
+            function getAudio(path) {
+                let audio = state.cache.get(path);
+                if (!audio) {
+                    audio = new Audio(path);
+                    audio.preload = "auto";
+                    state.cache.set(path, audio);
+                }
+                return audio;
+            }
 
-function resetPlaying(card) {
-  if (card) card.classList.remove("playing");
-}
+            function resetPlaying(card) {
+                if (card) card.classList.remove("playing");
+            }
 
-function play(path, card, fallbackPaths = []) {
-  if (state.currentAudio) {
-    state.currentAudio.pause();
-    state.currentAudio.currentTime = 0;
-  }
-  if (state.currentCard) state.currentCard.classList.remove("playing");
-  const audio = getAudio(path);
-  state.currentAudio = audio;
-  state.currentCard = card || null;
-  if (card) card.classList.add("playing");
-  audio.onended = () => resetPlaying(card);
-  audio.onerror = () => {
-    const next = fallbackPaths.shift();
-    if (next) {
-      play(next, card, fallbackPaths);
-    } else {
-      resetPlaying(card);
-    }
-  };
-  audio.currentTime = 0;
-  audio.play().catch(() => {
-    const next = fallbackPaths.shift();
-    if (next) play(next, card, fallbackPaths);
-    else resetPlaying(card);
-  });
-}
+            function play(path, card, fallbackPaths = []) {
+                if (state.currentAudio) {
+                    state.currentAudio.pause();
+                    state.currentAudio.currentTime = 0;
+                }
+                if (state.currentCard)
+                    state.currentCard.classList.remove("playing");
+                const audio = getAudio(path);
+                state.currentAudio = audio;
+                state.currentCard = card || null;
+                if (card) card.classList.add("playing");
+                audio.onended = () => resetPlaying(card);
+                audio.onerror = () => {
+                    const next = fallbackPaths.shift();
+                    if (next) {
+                        play(next, card, fallbackPaths);
+                    } else {
+                        resetPlaying(card);
+                    }
+                };
+                audio.currentTime = 0;
+                audio.play().catch(() => {
+                    const next = fallbackPaths.shift();
+                    if (next) play(next, card, fallbackPaths);
+                    else resetPlaying(card);
+                });
+            }
 
-function getGroupById(id) {
-  id = normalizeIpaId(id);
-  for (const group of Object.values(IPA_GROUPS)) {
-    if (group.ids.includes(id)) return group;
-  }
-  return null;
-}
+            function getGroupById(id) {
+                id = normalizeIpaId(id);
+                for (const group of Object.values(IPA_GROUPS)) {
+                    if (group.ids.includes(id)) return group;
+                }
+                return null;
+            }
 
-function normalizeIpaText(text) {
-  return (text || '')
-    .normalize('NFC')
-    .replace(/t͡ʃ/g, 'tʃ')
-    .replace(/d͡ʒ/g, 'dʒ')
-    .replace(/ʧ/g, 'tʃ')
-    .replace(/ʤ/g, 'dʒ')
-    .replace(/ɡ/g, 'g')
-    .replace(/ɑ(?=ʊ)/g, 'a')
-    .replace(/ɔ(?!ː|ɪ)/g, 'ɒ')
-    .replace(/i(?!ː)/g, 'ɪ')
-    .replace(/ɹ/g, 'r');
-}
+            function normalizeIpaText(text) {
+                return (text || "")
+                    .normalize("NFC")
+                    .replace(/t͡ʃ/g, "tʃ")
+                    .replace(/d͡ʒ/g, "dʒ")
+                    .replace(/ʧ/g, "tʃ")
+                    .replace(/ʤ/g, "dʒ")
+                    .replace(/ɡ/g, "g")
+                    .replace(/ɑ(?=ʊ)/g, "a")
+                    .replace(/ɔ(?!ː|ɪ)/g, "ɒ")
+                    .replace(/i(?!ː)/g, "ɪ")
+                    .replace(/ɹ/g, "r");
+            }
 
-function normalizeIpaDisplay(text) {
-  return normalizeIpaText(text)
-    .replace(/\./g, '')
-    .replace(/tər(?=ɪ$)/g, 'tr')
-    .replace(/tər(?=i$)/g, 'tr');
-}
+            function normalizeIpaDisplay(text) {
+                return normalizeIpaText(text)
+                    .replace(/\./g, "")
+                    .replace(/tər(?=ɪ$)/g, "tr")
+                    .replace(/tər(?=i$)/g, "tr");
+            }
 
-function normalizeIpaId(id) {
-  return IPA_ALIASES[id] || normalizeIpaText(id);
-}
+            function normalizeIpaId(id) {
+                return IPA_ALIASES[id] || normalizeIpaText(id);
+            }
 
-function parseIpaString(ipaStr, accent) {
-  let s = (ipaStr || '').replace(/^\/|\/$/g, '');
-  s = normalizeIpaDisplay(s);
-  if (accent === 'us') {
-    for (const pat of US_TO_UK_PATTERNS) s = s.replace(pat.from, pat.to);
-  }
-  const displayStr = s;
-  const cleaned = s.replace(/[ˈˌ]/g, '');
-  const tokens = [];
-  let i = 0;
-  while (i < cleaned.length) {
-    let matched = false;
-    for (const id of ALL_IPA_IDS) {
-      if (cleaned.substring(i, i + id.length) === id) {
-        tokens.push(normalizeIpaId(id));
-        i += id.length;
-        matched = true;
-        break;
-      }
-    }
-    if (!matched) i++;
-  }
-  return { tokens, displayStr };
-}
+            function parseIpaString(ipaStr, accent) {
+                let s = (ipaStr || "").replace(/^\/|\/$/g, "");
+                s = normalizeIpaDisplay(s);
+                if (accent === "us") {
+                    for (const pat of US_TO_UK_PATTERNS)
+                        s = s.replace(pat.from, pat.to);
+                }
+                const displayStr = s;
+                const cleaned = s.replace(/[ˈˌ]/g, "");
+                const tokens = [];
+                let i = 0;
+                while (i < cleaned.length) {
+                    let matched = false;
+                    for (const id of ALL_IPA_IDS) {
+                        if (cleaned.substring(i, i + id.length) === id) {
+                            tokens.push(normalizeIpaId(id));
+                            i += id.length;
+                            matched = true;
+                            break;
+                        }
+                    }
+                    if (!matched) i++;
+                }
+                return { tokens, displayStr };
+            }
 
-async function fetchWordPhonetics(word) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8000);
-  try {
-    const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word.toLowerCase())}`, { signal: controller.signal });
-    clearTimeout(timeout);
-    if (!res.ok) {
-      if (res.status === 404) throw new Error('未找到该单词');
-      throw new Error('查询失败，请稍后重试');
-    }
-    return await res.json();
-  } catch (err) {
-    clearTimeout(timeout);
-    if (err.name === 'AbortError') throw new Error('查询超时，请检查网络');
-    throw err;
-  }
-}
+            async function fetchWordPhonetics(word) {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 8000);
+                try {
+                    const res = await fetch(
+                        `https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(word.toLowerCase())}`,
+                        { signal: controller.signal },
+                    );
+                    clearTimeout(timeout);
+                    if (!res.ok) {
+                        if (res.status === 404) throw new Error("未找到该单词");
+                        throw new Error("查询失败，请稍后重试");
+                    }
+                    return await res.json();
+                } catch (err) {
+                    clearTimeout(timeout);
+                    if (err.name === "AbortError")
+                        throw new Error("查询超时，请检查网络");
+                    throw err;
+                }
+            }
 
-function extractPhonetic(data, accent) {
-  const entry = data[0];
-  if (!entry || !entry.phonetics || entry.phonetics.length === 0) {
-    throw new Error('未找到音标数据');
-  }
-  const localPhoneticText = LOCAL_WORD_PHONETICS.get((entry.word || '').toLowerCase());
-  const phoneticsWithText = entry.phonetics.filter(p => p.text);
-  const phoneticsWithAudio = entry.phonetics.filter(p => p.audio);
-  let phonetic = phoneticsWithText.find(p => {
-    if (!p.text) return false;
-    if (accent === 'us') return /oʊ|ɑ(?!ː)|ɝ|ɚ/.test(p.text);
-    return /əʊ|ɒ|ɪə/.test(p.text);
-  });
-  if (!phonetic) phonetic = phoneticsWithText[0] || entry.phonetics[0];
-  const audioUrls = [];
-  if (phonetic.audio) audioUrls.push(phonetic.audio);
-  phoneticsWithAudio.forEach(p => {
-    if (!audioUrls.includes(p.audio)) audioUrls.push(p.audio);
-  });
-  return { word: entry.word, phoneticText: localPhoneticText || phonetic.text || '', audioUrls };
-}
+            function extractPhonetic(data, accent) {
+                const entry = data[0];
+                if (
+                    !entry ||
+                    !entry.phonetics ||
+                    entry.phonetics.length === 0
+                ) {
+                    throw new Error("未找到音标数据");
+                }
+                const localPhoneticText = LOCAL_WORD_PHONETICS.get(
+                    (entry.word || "").toLowerCase(),
+                );
+                const phoneticsWithText = entry.phonetics.filter((p) => p.text);
+                const phoneticsWithAudio = entry.phonetics.filter(
+                    (p) => p.audio,
+                );
+                let phonetic = phoneticsWithText.find((p) => {
+                    if (!p.text) return false;
+                    if (accent === "us") return /oʊ|ɑ(?!ː)|ɝ|ɚ/.test(p.text);
+                    return /əʊ|ɒ|ɪə/.test(p.text);
+                });
+                if (!phonetic)
+                    phonetic = phoneticsWithText[0] || entry.phonetics[0];
+                const audioUrls = [];
+                if (phonetic.audio) audioUrls.push(phonetic.audio);
+                phoneticsWithAudio.forEach((p) => {
+                    if (!audioUrls.includes(p.audio)) audioUrls.push(p.audio);
+                });
+                return {
+                    word: entry.word,
+                    phoneticText: localPhoneticText || phonetic.text || "",
+                    audioUrls,
+                };
+            }
 
-async function fetchTranslation(word) {
-  try {
-    const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|zh-CN`);
-    if (!res.ok) return '';
-    const data = await res.json();
-    return (data.responseData && data.responseData.translatedText) || '';
-  } catch { return ''; }
-}
+            async function fetchTranslation(word) {
+                try {
+                    const res = await fetch(
+                        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(word)}&langpair=en|zh-CN`,
+                    );
+                    if (!res.ok) return "";
+                    const data = await res.json();
+                    return (
+                        (data.responseData &&
+                            data.responseData.translatedText) ||
+                        ""
+                    );
+                } catch {
+                    return "";
+                }
+            }
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
+            function escapeHtml(text) {
+                const div = document.createElement("div");
+                div.textContent = text;
+                return div.innerHTML;
+            }
 
-function highlightCards(tokenIds) {
-  state.highlightedIds = new Set(tokenIds.map(normalizeIpaId));
-  document.querySelectorAll('.ipa-card').forEach(card => {
-    const id = card.dataset.ipaId;
-    if (state.highlightedIds.has(id)) {
-      card.classList.add('highlighted');
-      card.classList.remove('dimmed');
-    } else {
-      card.classList.add('dimmed');
-      card.classList.remove('highlighted');
-    }
-  });
-  const first = document.querySelector('.ipa-card.highlighted');
-  if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
-}
+            function highlightCards(tokenIds) {
+                state.highlightedIds = new Set(tokenIds.map(normalizeIpaId));
+                document.querySelectorAll(".ipa-card").forEach((card) => {
+                    const id = card.dataset.ipaId;
+                    if (state.highlightedIds.has(id)) {
+                        card.classList.add("highlighted");
+                        card.classList.remove("dimmed");
+                    } else {
+                        card.classList.add("dimmed");
+                        card.classList.remove("highlighted");
+                    }
+                });
+                const first = document.querySelector(".ipa-card.highlighted");
+                if (first)
+                    first.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                    });
+            }
 
-function clearHighlight() {
-  state.highlightedIds.clear();
-  document.querySelectorAll('.ipa-card').forEach(card => {
-    card.classList.remove('highlighted', 'dimmed', 'pulse');
-  });
-}
+            function clearHighlight() {
+                state.highlightedIds.clear();
+                document.querySelectorAll(".ipa-card").forEach((card) => {
+                    card.classList.remove("highlighted", "dimmed", "pulse");
+                });
+            }
 
-function renderResultPanel({ word, phoneticText, tokens, audioUrls, translation, displayStr }) {
-  const panel = document.getElementById('search-result');
-  const groupLabels = [];
-  const tokenHtml = tokens.map(id => {
-    const normalizedId = normalizeIpaId(id);
-    const group = getGroupById(normalizedId);
-    if (group && !groupLabels.includes(group.label)) groupLabels.push(group.label);
-    const color = group ? group.color : '#888';
-    const label = group ? group.label : '';
-    return `<span class="token-pill" data-ipa-id="${normalizedId}" style="background:${color}"><span>${escapeHtml(id)}</span>${label ? `<span class="token-group">${label}</span>` : ''}</span>`;
-  }).join('');
+            function renderResultPanel({
+                word,
+                phoneticText,
+                tokens,
+                audioUrls,
+                translation,
+                displayStr,
+            }) {
+                const panel = document.getElementById("search-result");
+                const groupLabels = [];
+                const tokenHtml = tokens
+                    .map((id) => {
+                        const normalizedId = normalizeIpaId(id);
+                        const group = getGroupById(normalizedId);
+                        if (group && !groupLabels.includes(group.label))
+                            groupLabels.push(group.label);
+                        const color = group ? group.color : "#888";
+                        const label = group ? group.label : "";
+                        return `<span class="token-pill" data-ipa-id="${normalizedId}" style="background:${color}"><span>${escapeHtml(id)}</span>${label ? `<span class="token-group">${label}</span>` : ""}</span>`;
+                    })
+                    .join("");
 
-  let phHtml = '/';
-  let pos = 0;
-  while (pos < displayStr.length) {
-    if (displayStr[pos] === 'ˈ' || displayStr[pos] === 'ˌ') {
-      phHtml += displayStr[pos];
-      pos++;
-      continue;
-    }
-    let matched = false;
-    for (const id of ALL_IPA_IDS) {
-      if (displayStr.substring(pos, pos + id.length) === id) {
-        const normalizedId = normalizeIpaId(id);
-        const group = getGroupById(normalizedId);
-        const color = group ? group.color : 'var(--cyan)';
-        phHtml += `<span class="ph" style="color:${color}">${escapeHtml(id)}</span>`;
-        pos += id.length;
-        matched = true;
-        break;
-      }
-    }
-    if (!matched) {
-      phHtml += escapeHtml(displayStr[pos]);
-      pos++;
-    }
-  }
-  phHtml += '/';
+                let phHtml = "/";
+                let pos = 0;
+                while (pos < displayStr.length) {
+                    if (displayStr[pos] === "ˈ" || displayStr[pos] === "ˌ") {
+                        phHtml += displayStr[pos];
+                        pos++;
+                        continue;
+                    }
+                    let matched = false;
+                    for (const id of ALL_IPA_IDS) {
+                        if (displayStr.substring(pos, pos + id.length) === id) {
+                            const normalizedId = normalizeIpaId(id);
+                            const group = getGroupById(normalizedId);
+                            const color = group ? group.color : "var(--cyan)";
+                            phHtml += `<span class="ph" style="color:${color}">${escapeHtml(id)}</span>`;
+                            pos += id.length;
+                            matched = true;
+                            break;
+                        }
+                    }
+                    if (!matched) {
+                        phHtml += escapeHtml(displayStr[pos]);
+                        pos++;
+                    }
+                }
+                phHtml += "/";
 
-  panel.innerHTML = `
+                panel.innerHTML = `
     <div class="result-header">
       <div>
         <span class="result-word">${escapeHtml(word)}</span>
@@ -716,169 +1474,241 @@ function renderResultPanel({ word, phoneticText, tokens, audioUrls, translation,
     </div>
     <div class="token-list">${tokenHtml}</div>
   `;
-  panel.classList.add('active');
+                panel.classList.add("active");
 
-  document.getElementById('result-play-btn').addEventListener('click', () => {
-    if (audioUrls && audioUrls.length > 0) {
-      play(audioUrls[0], null, audioUrls.slice(1));
-    } else {
-      const otherAccent = state.accent === 'uk' ? 'us' : 'uk';
-      play(`${WORD_DIR}${word.toLowerCase()}_${state.accent}.mp3`, null, [`${WORD_DIR}${word.toLowerCase()}_${otherAccent}.mp3`]);
-    }
-  });
+                document
+                    .getElementById("result-play-btn")
+                    .addEventListener("click", () => {
+                        if (audioUrls && audioUrls.length > 0) {
+                            play(audioUrls[0], null, audioUrls.slice(1));
+                        } else {
+                            const otherAccent =
+                                state.accent === "uk" ? "us" : "uk";
+                            play(
+                                `${WORD_DIR}${word.toLowerCase()}_${state.accent}.mp3`,
+                                null,
+                                [
+                                    `${WORD_DIR}${word.toLowerCase()}_${otherAccent}.mp3`,
+                                ],
+                            );
+                        }
+                    });
 
-  panel.querySelectorAll('.token-pill').forEach(pill => {
-    const id = pill.dataset.ipaId;
-    pill.addEventListener('click', () => {
-      const reg = ipaRegistry.get(id);
-      if (reg) play(`${PHONEME_DIR}${reg.item.ipa}`, reg.element);
-    });
-    pill.addEventListener('mouseenter', () => {
-      const reg = ipaRegistry.get(id);
-      if (reg) {
-        reg.element.classList.add('pulse');
-        setTimeout(() => reg.element.classList.remove('pulse'), 450);
-      }
-    });
-  });
-}
+                panel.querySelectorAll(".token-pill").forEach((pill) => {
+                    const id = pill.dataset.ipaId;
+                    pill.addEventListener("click", () => {
+                        const reg = ipaRegistry.get(id);
+                        if (reg)
+                            play(`${PHONEME_DIR}${reg.item.ipa}`, reg.element);
+                    });
+                    pill.addEventListener("mouseenter", () => {
+                        const reg = ipaRegistry.get(id);
+                        if (reg) {
+                            reg.element.classList.add("pulse");
+                            setTimeout(
+                                () => reg.element.classList.remove("pulse"),
+                                450,
+                            );
+                        }
+                    });
+                });
+            }
 
-function updateSearchResult(data) {
-  try {
-    const { word, phoneticText, audioUrls } = extractPhonetic(data, state.accent);
-    const { tokens, displayStr } = parseIpaString(phoneticText, state.accent);
-    renderResultPanel({ word, phoneticText, tokens, audioUrls, translation: '', displayStr });
-    highlightCards(tokens);
-    fetchTranslation(word).then(zh => {
-      if (zh) {
-        const el = document.querySelector('.result-def');
-        if (el) el.textContent = zh;
-      }
-    });
-  } catch (err) {
-    showError(err.message || '解析音标失败');
-    clearHighlight();
-  }
-}
+            function updateSearchResult(data) {
+                try {
+                    const { word, phoneticText, audioUrls } = extractPhonetic(
+                        data,
+                        state.accent,
+                    );
+                    const { tokens, displayStr } = parseIpaString(
+                        phoneticText,
+                        state.accent,
+                    );
+                    renderResultPanel({
+                        word,
+                        phoneticText,
+                        tokens,
+                        audioUrls,
+                        translation: "",
+                        displayStr,
+                    });
+                    highlightCards(tokens);
+                    fetchTranslation(word).then((zh) => {
+                        if (zh) {
+                            const el = document.querySelector(".result-def");
+                            if (el) el.textContent = zh;
+                        }
+                    });
+                } catch (err) {
+                    showError(err.message || "解析音标失败");
+                    clearHighlight();
+                }
+            }
 
-async function searchWord(word) {
-  word = (word || '').trim();
-  if (!word) { clearResult(); return; }
-  if (!/^[a-zA-Z]+$/.test(word)) { showError('请输入纯英文单词'); return; }
-  hideError();
-  setLoading(true);
-  clearHighlight();
-  try {
-    const data = await fetchWordPhonetics(word);
-    state.lastSearchData = data;
-    updateSearchResult(data);
-  } catch (err) {
-    showError(err.message);
-    state.lastSearchData = null;
-  } finally {
-    setLoading(false);
-  }
-}
+            async function searchWord(word) {
+                word = (word || "").trim();
+                if (!word) {
+                    clearResult();
+                    return;
+                }
+                if (!/^[a-zA-Z]+$/.test(word)) {
+                    showError("请输入纯英文单词");
+                    return;
+                }
+                hideError();
+                setLoading(true);
+                clearHighlight();
+                try {
+                    const data = await fetchWordPhonetics(word);
+                    state.lastSearchData = data;
+                    updateSearchResult(data);
+                } catch (err) {
+                    showError(err.message);
+                    state.lastSearchData = null;
+                } finally {
+                    setLoading(false);
+                }
+            }
 
-function clearResult() {
-  const panel = document.getElementById('search-result');
-  panel.classList.remove('active');
-  panel.innerHTML = '';
-  clearHighlight();
-  state.lastSearchData = null;
-  document.getElementById('word-input').value = '';
-  updateClearBtn();
-}
+            function clearResult() {
+                const panel = document.getElementById("search-result");
+                panel.classList.remove("active");
+                panel.innerHTML = "";
+                clearHighlight();
+                state.lastSearchData = null;
+                document.getElementById("word-input").value = "";
+                updateClearBtn();
+            }
 
-function showError(msg) {
-  const el = document.getElementById('search-error');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 3000);
-}
+            function showError(msg) {
+                const el = document.getElementById("search-error");
+                el.textContent = msg;
+                el.classList.add("show");
+                setTimeout(() => el.classList.remove("show"), 3000);
+            }
 
-function hideError() {
-  document.getElementById('search-error').classList.remove('show');
-}
+            function hideError() {
+                document
+                    .getElementById("search-error")
+                    .classList.remove("show");
+            }
 
-function setLoading(loading) {
-  const btn = document.getElementById('search-btn');
-  btn.classList.toggle('loading', loading);
-  btn.textContent = loading ? '查询中…' : '查询';
-}
+            function setLoading(loading) {
+                const btn = document.getElementById("search-btn");
+                btn.classList.toggle("loading", loading);
+                btn.textContent = loading ? "查询中…" : "查询";
+            }
 
-function updateClearBtn() {
-  const input = document.getElementById('word-input');
-  const btn = document.getElementById('clear-btn');
-  btn.classList.toggle('visible', input.value.length > 0);
-}
+            function updateClearBtn() {
+                const input = document.getElementById("word-input");
+                const btn = document.getElementById("clear-btn");
+                btn.classList.toggle("visible", input.value.length > 0);
+            }
 
-function render() {
-  const chart = document.getElementById("chart");
-  chart.innerHTML = categories.map(category => `
+            function render() {
+                const chart = document.getElementById("chart");
+                chart.innerHTML = categories
+                    .map(
+                        (category) => `
     <section class="category">
       <div class="section-label">
         <h2>${category.title}</h2>
         <span>${category.hint}</span>
       </div>
       <div class="ipa-grid">
-        ${category.items.map(item => `
+        ${category.items
+            .map(
+                (item) => `
           <article class="ipa-card" data-ipa="${item.ipa}" data-word="${item.f}" data-ipa-id="${item.id}">
             <div class="ipa-symbol" data-action="phoneme">${item.s}</div>
             <div class="divider"></div>
             <div class="ipa-word" data-action="word">${item.w}</div>
             <div class="word-ipa" data-action="word">${item.p}</div>
           </article>
-        `).join("")}
+        `,
+            )
+            .join("")}
       </div>
     </section>
-  `).join("");
-  ipaRegistry.clear();
-  document.querySelectorAll('.ipa-card').forEach(card => {
-    const id = card.dataset.ipaId;
-    const item = categories.flatMap(c => c.items).find(i => i.id === id);
-    const category = categories.find(c => c.items.some(i => i.id === id));
-    if (id && item) ipaRegistry.set(id, { item, element: card, category });
-  });
-}
+  `,
+                    )
+                    .join("");
+                ipaRegistry.clear();
+                document.querySelectorAll(".ipa-card").forEach((card) => {
+                    const id = card.dataset.ipaId;
+                    const item = categories
+                        .flatMap((c) => c.items)
+                        .find((i) => i.id === id);
+                    const category = categories.find((c) =>
+                        c.items.some((i) => i.id === id),
+                    );
+                    if (id && item)
+                        ipaRegistry.set(id, { item, element: card, category });
+                });
+            }
 
-document.querySelector(".accent-toggle").addEventListener("click", event => {
-  const button = event.target.closest(".accent-btn");
-  if (!button) return;
-  state.accent = button.dataset.accent;
-  document.querySelectorAll(".accent-btn").forEach(btn => {
-    const active = btn === button;
-    btn.classList.toggle("active", active);
-    btn.setAttribute("aria-pressed", String(active));
-  });
-  if (state.lastSearchData) updateSearchResult(state.lastSearchData);
-});
+            document
+                .querySelector(".accent-toggle")
+                .addEventListener("click", (event) => {
+                    const button = event.target.closest(".accent-btn");
+                    if (!button) return;
+                    state.accent = button.dataset.accent;
+                    document.querySelectorAll(".accent-btn").forEach((btn) => {
+                        const active = btn === button;
+                        btn.classList.toggle("active", active);
+                        btn.setAttribute("aria-pressed", String(active));
+                    });
+                    if (state.lastSearchData)
+                        updateSearchResult(state.lastSearchData);
+                });
 
-document.getElementById("chart").addEventListener("pointerdown", event => {
-  const card = event.target.closest(".ipa-card");
-  if (!card) return;
-  const rect = card.getBoundingClientRect();
-  card.style.setProperty("--x", `${event.clientX - rect.left - rect.width / 2}px`);
-  card.style.setProperty("--y", `${event.clientY - rect.top - rect.height / 2}px`);
-});
+            document
+                .getElementById("chart")
+                .addEventListener("pointerdown", (event) => {
+                    const card = event.target.closest(".ipa-card");
+                    if (!card) return;
+                    const rect = card.getBoundingClientRect();
+                    card.style.setProperty(
+                        "--x",
+                        `${event.clientX - rect.left - rect.width / 2}px`,
+                    );
+                    card.style.setProperty(
+                        "--y",
+                        `${event.clientY - rect.top - rect.height / 2}px`,
+                    );
+                });
 
-document.getElementById("chart").addEventListener("click", event => {
-  const card = event.target.closest(".ipa-card");
-  if (!card) return;
-  const isWord = event.target.closest("[data-action='word']");
-  const path = isWord ? `${WORD_DIR}${card.dataset.word}_${state.accent}.mp3` : `${PHONEME_DIR}${card.dataset.ipa}`;
-  play(path, card);
-});
+            document
+                .getElementById("chart")
+                .addEventListener("click", (event) => {
+                    const card = event.target.closest(".ipa-card");
+                    if (!card) return;
+                    const isWord = event.target.closest("[data-action='word']");
+                    const path = isWord
+                        ? `${WORD_DIR}${card.dataset.word}_${state.accent}.mp3`
+                        : `${PHONEME_DIR}${card.dataset.ipa}`;
+                    play(path, card);
+                });
 
-document.getElementById('search-btn').addEventListener('click', () => searchWord(document.getElementById('word-input').value));
-document.getElementById('word-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') searchWord(e.target.value);
-  else if (e.key === 'Escape') clearResult();
-});
-document.getElementById('clear-btn').addEventListener('click', clearResult);
-document.getElementById('word-input').addEventListener('input', updateClearBtn);
+            document
+                .getElementById("search-btn")
+                .addEventListener("click", () =>
+                    searchWord(document.getElementById("word-input").value),
+                );
+            document
+                .getElementById("word-input")
+                .addEventListener("keydown", (e) => {
+                    if (e.key === "Enter") searchWord(e.target.value);
+                    else if (e.key === "Escape") clearResult();
+                });
+            document
+                .getElementById("clear-btn")
+                .addEventListener("click", clearResult);
+            document
+                .getElementById("word-input")
+                .addEventListener("input", updateClearBtn);
 
-render();
-</script>
-</body>
+            render();
+        </script>
+    </body>
 </html>
