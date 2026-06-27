@@ -292,6 +292,28 @@ h1{font-size:24px;font-weight:780;letter-spacing:0}
 }
 .ipa-card.dimmed{opacity:.35;filter:grayscale(.6)}
 .ipa-card.pulse{animation:pulse .45s ease}
+.site-footer{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px 12px;
+  margin:22px auto 0;
+  padding:10px 12px 0;
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.6;
+  text-align:center;
+  user-select:text;
+}
+.site-footer a{
+  color:#d9edff;
+  font-weight:760;
+  text-decoration:none;
+}
+.site-footer a:hover{color:var(--cyan)}
+.site-footer .footer-email{color:#b7c9dd}
+.site-footer .footer-dot{opacity:.5}
 @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}
 @media(max-width:720px){
   body{padding:10px 8px 24px}
@@ -312,6 +334,7 @@ h1{font-size:24px;font-weight:780;letter-spacing:0}
   .result-word{font-size:18px}
   .result-phonetic{font-size:16px}
   .token-pill{font-size:14px;padding:5px 10px}
+  .site-footer{margin-top:18px;font-size:14px}
 }
 @media(max-width:420px){
   .ipa-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
@@ -347,6 +370,11 @@ h1{font-size:24px;font-weight:780;letter-spacing:0}
   </div>
   <div id="search-result"></div>
   <div id="chart"></div>
+  <footer class="site-footer">
+    <span>作者 <a href="https://80h.pages.dev/" target="_blank" rel="noopener noreferrer">Shaifx</a></span>
+    <span class="footer-dot" aria-hidden="true">·</span>
+    <span class="footer-email">shaifx@hotmail.com</span>
+  </footer>
 </main>
 <script>
 const PHONEME_DIR = "sounds/phonemes/";
